@@ -1,0 +1,6 @@
+# Temp files
+prompt.txt
+
+# Dynamic Uploaded Images (ignore uploads but keep the directory)
+/assets/images/*
+!/assets/images/.gitkeep
