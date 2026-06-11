@@ -6,15 +6,20 @@ $error = '';
 $action = isset($_GET['action']) ? $_GET['action'] : 'view';
 $msgId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-// Handle Delete Action
-if ($action === 'delete' && $msgId > 0) {
-    try {
-        $stmt = $pdo->prepare("DELETE FROM messages WHERE id = ?");
-        $stmt->execute([$msgId]);
-        $success = 'Message deleted successfully.';
-        $msgId = 0; // reset selected message
-    } catch (PDOException $e) {
-        $error = 'Failed to delete message: ' . $e->getMessage();
+// Handle Delete Action via POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+    $delId = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+    
+    if ($delId > 0) {
+        try {
+            $stmt = $pdo->prepare("DELETE FROM messages WHERE id = ?");
+            $stmt->execute([$delId]);
+            $success = 'Message deleted successfully.';
+            $msgId = 0; // reset selected message
+        } catch (PDOException $e) {
+            $error = 'Failed to delete message: ' . $e->getMessage();
+        }
     }
 }
 
@@ -126,10 +131,15 @@ try {
                         </div>
                         <div class="text-right">
                             <span class="text-xs text-gray-400 dark:text-gray-500 block"><?= date('d M Y, H:i', strtotime($selectedMessage['created_at'])) ?></span>
-                            <a href="messages.php?action=delete&id=<?= $selectedMessage['id'] ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus pesan ini?')" class="mt-2 inline-flex items-center text-xs font-semibold text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
-                                <svg class="mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                Hapus Pesan
-                            </a>
+                            <form method="POST" action="messages.php" class="inline-block mt-2" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pesan ini?')">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="<?= $selectedMessage['id'] ?>">
+                                <button type="submit" class="inline-flex items-center text-xs font-semibold text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-transparent border-none cursor-pointer">
+                                    <svg class="mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    Hapus Pesan
+                                </button>
+                            </form>
                         </div>
                     </div>
 

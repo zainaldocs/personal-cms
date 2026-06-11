@@ -23,7 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $stmt->fetch();
 
             if ($user && password_verify($password, $user['password_hash'])) {
-                // Login successful
+                // Login successful - Regenerate session ID to prevent session fixation
+                session_regenerate_id(true);
                 $_SESSION['admin_logged_in'] = true;
                 $_SESSION['admin_user_id'] = $user['id'];
                 $_SESSION['admin_username'] = $user['username'];

@@ -6,33 +6,39 @@ $error = '';
 $action = isset($_GET['action']) ? $_GET['action'] : 'list';
 $postId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-// Handle Delete Action
-if ($action === 'delete' && $postId > 0) {
-    try {
-        // Fetch image path to delete it from filesystem
-        $stmt = $pdo->prepare("SELECT image FROM posts WHERE id = ?");
-        $stmt->execute([$postId]);
-        $post = $stmt->fetch();
-        
-        if ($post) {
-            if (!empty($post['image']) && file_exists('../assets/images/' . $post['image'])) {
-                unlink('../assets/images/' . $post['image']);
-            }
+// Handle Delete Action via POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+    $delId = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+    
+    if ($delId > 0) {
+        try {
+            // Fetch image path to delete it from filesystem
+            $stmt = $pdo->prepare("SELECT image FROM posts WHERE id = ?");
+            $stmt->execute([$delId]);
+            $post = $stmt->fetch();
             
-            $stmt = $pdo->prepare("DELETE FROM posts WHERE id = ?");
-            $stmt->execute([$postId]);
-            $success = 'Post deleted successfully.';
-        } else {
-            $error = 'Post not found.';
+            if ($post) {
+                if (!empty($post['image']) && file_exists('../assets/images/' . $post['image'])) {
+                    unlink('../assets/images/' . $post['image']);
+                }
+                
+                $stmt = $pdo->prepare("DELETE FROM posts WHERE id = ?");
+                $stmt->execute([$delId]);
+                $success = 'Post deleted successfully.';
+            } else {
+                $error = 'Post not found.';
+            }
+        } catch (PDOException $e) {
+            $error = 'Failed to delete post: ' . $e->getMessage();
         }
-    } catch (PDOException $e) {
-        $error = 'Failed to delete post: ' . $e->getMessage();
     }
     $action = 'list'; // redirect to list view after delete
 }
 
 // Handle Form Submission (Add or Edit)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'add' || $action === 'edit')) {
+    verify_csrf_token($_POST['csrf_token'] ?? '');
     $title = trim($_POST['title']);
     $slug = trim($_POST['slug']);
     $content = trim($_POST['content']);
@@ -211,7 +217,12 @@ if ($action === 'edit' && $postId > 0) {
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold space-x-2">
                                         <a href="posts.php?action=edit&id=<?= $post['id'] ?>" class="text-brand-600 hover:text-brand-900 dark:text-brand-400 dark:hover:text-brand-300">Edit</a>
-                                        <a href="posts.php?action=delete&id=<?= $post['id'] ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus artikel ini?')" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Hapus</a>
+                                        <form method="POST" action="posts.php" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus artikel ini?')">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?= $post['id'] ?>">
+                                            <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-transparent border-none cursor-pointer">Hapus</button>
+                                        </form>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -244,6 +255,7 @@ if ($action === 'edit' && $postId > 0) {
         </div>
 
         <form action="" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <?= csrf_field() ?>
             <!-- Main Content Form (Left) -->
             <div class="lg:col-span-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-800 shadow-md rounded-2xl p-6 space-y-6">
                 <div>

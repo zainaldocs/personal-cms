@@ -5,6 +5,9 @@ $success = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Verify CSRF token
+    verify_csrf_token($_POST['csrf_token'] ?? '');
+
     try {
         $pdo->beginTransaction();
 
@@ -80,6 +83,7 @@ try {
     <?php endif; ?>
 
     <form action="" method="POST" enctype="multipart/form-data" class="space-y-6">
+        <?= csrf_field() ?>
         <!-- Site Configuration -->
         <div class="bg-white dark:bg-gray-800 shadow-md border border-gray-100 dark:border-gray-800 rounded-2xl p-6 space-y-6">
             <h3 class="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-3">Informasi Umum</h3>

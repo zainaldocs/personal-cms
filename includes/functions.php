@@ -102,3 +102,31 @@ function upload_image($file, $target_dir) {
         throw new Exception("Failed to move uploaded file.");
     }
 }
+
+/**
+ * Generate a CSRF token and store it in the session
+ */
+function generate_csrf_token() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Verify a CSRF token
+ */
+function verify_csrf_token($token) {
+    if (!isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
+        die("Invalid CSRF token. Please go back and try again.");
+    }
+    return true;
+}
+
+/**
+ * Render a hidden input field with the CSRF token
+ */
+function csrf_field() {
+    $token = generate_csrf_token();
+    return '<input type="hidden" name="csrf_token" value="' . sanitize($token) . '">';
+}
